@@ -45,6 +45,8 @@ _filter_card = ('FILTER', '', 'The instrument filter in use (if any)')
 _hduclass_card = ('HDUCLASS', 'OGIP', 'Conforms to OGIP standard indicated in HDUCLAS1')
 _hduvers_card = ('HDUVERS', '1.2.1', 'Version of HDUCLAS1 format in use')
 _trigtime_card = ('TRIGTIME', 0.0, 'Trigger time')
+_telescope_card = ('TELESCOP', '', 'Name of mission/satellite')
+_instrument_card = ('INSTRUME', '', 'Specific instrument used for observation')
 
 class PrimaryHeader(Header):
     name = 'PRIMARY'
@@ -67,7 +69,7 @@ class EboundsHeader(Header):
 
 class PhaSpectrumHeader(Header):
     name = 'SPECTRUM'
-    keywords = [_extname_card, _filter_card,
+    keywords = [_extname_card, _filter_card,_telescope_card, _instrument_card,
             ('AREASCAL', 1., 'No special scaling of effective area by channel'),
             ('BACKFILE', '', 'Name of corresponding background file (if any)'),
             ('BACKSCAL', 1., 'background file scaling factor'),
@@ -88,7 +90,7 @@ class PhaSpectrumHeader(Header):
 
 class BakSpectrumHeader(Header):
     name = 'SPECTRUM'
-    keywords = [_extname_card, _filter_card,
+    keywords = [_extname_card, _filter_card,_telescope_card, _instrument_card,
             ('AREASCAL', 1., 'No special scaling of effective area by channel'),
             ('BACKFILE', '', 'Name of corresponding background file (if any)'),
             ('BACKSCAL', 1., 'background file scaling factor'),
@@ -310,7 +312,13 @@ class Pha(FitsFileContextManager):
             obj._headers['SPECTRUM']['DETCHANS'] = data.size
         obj._headers['PRIMARY']['TRIGTIME'] = trigger_time
         obj._headers['SPECTRUM']['EXPOSURE'] = obj._data.exposure[0]
-        
+
+        if obj._headers != None:
+            for key in obj._headers['SPECTRUM'].keys():
+                if obj._headers['SPECTRUM'][key] =='':
+                    if key in kwargs.keys():
+                        obj._headers['SPECTRUM'][key] = kwargs[key]
+
         # set the channel mask
         if channel_mask is None:
             channel_mask = np.zeros(data.size, dtype=bool)
@@ -375,7 +383,7 @@ class Pha(FitsFileContextManager):
             data = EnergyBins(obj.column(2, 'COUNTS'), obj.column(1, 'E_MIN'),
                               obj.column(1, 'E_MAX'), exposure)
         elif headers['SPECTRUM']['HDUCLAS3'] == 'RATE':
-            data = BackgroundSpectrum(obj.column(2, 'RATES'), 
+            data = BackgroundSpectrum(obj.column(2, 'RATE'), 
                                       obj.column(2, 'STAT_ERR'),
                                       obj.column(1, 'E_MIN'), 
                                       obj.column(1, 'E_MAX'), exposure)
@@ -506,7 +514,7 @@ class Pha(FitsFileContextManager):
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
         counts_col = fits.Column(name='COUNTS', format='J', bzero=32768, 
-                                 bscale=1, unit='count', array=self.data.counts)
+                                 bscale=1, unit='counts', array=self.data.counts)
         qual_col = fits.Column(name='QUALITY', format='1I', 
                                array=(~self.channel_mask).astype(int))
         
@@ -592,7 +600,7 @@ class Bak(Pha):
     def _spectrum_table(self):
         chan_col = fits.Column(name='CHANNEL', format='1I', 
                                array=np.arange(self.num_chans, dtype=int))
-        rates_col = fits.Column(name='RATES', format='1D', unit='count/s', 
+        rates_col = fits.Column(name='RATE', format='1D', unit='count/s', 
                                 array=self.data.rates)
         staterr_col = fits.Column(name='STAT_ERR', format='1D', unit='count/s', 
                                   array=self.data.rate_uncertainty)

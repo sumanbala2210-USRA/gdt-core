@@ -376,9 +376,12 @@ class Phaii(FitsFileContextManager):
 
         gti = Gti.from_list(times)
 
+        if self._headers !=None:
+            for key, value in self._headers['SPECTRUM'].items():
+                kwargs[key] = value
+
         pha = Pha.from_data(data, gti=gti, trigger_time=self.trigtime, 
-                            channel_mask=channel_mask, **kwargs)
-        
+                                    channel_mask=channel_mask, **kwargs)
         return pha
     
     def to_spectrum(self, time_range=None, energy_range=None,
