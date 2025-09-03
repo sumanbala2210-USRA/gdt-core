@@ -29,7 +29,7 @@
 import numpy as np
 from .generators import *
 
-__all__ = ['norris', 'tophat', 'constant', 'linear', 'quadratic']
+__all__ = ['norris', 'tophat', 'gaussian', 'triangular', 'constant', 'linear', 'quadratic']
 
 # pulse shapes
 def tophat(x, amp, tstart, tstop):
@@ -84,6 +84,60 @@ def norris(x, amp, tstart, t_rise, t_decay):
         -t_rise / (x[mask] - tstart) - (x[mask] - tstart) / t_decay)
     return fxn
 
+def gaussian(x, amp, center, sigma):
+    r"""A Gaussian (normal) profile.
+    
+    The functional form is:
+    
+    :math:`f(x) = A e^{-\frac{(x - \mu)^2}{2\sigma^2}}`
+    
+    where:
+    
+    * :math:`A` is the pulse amplitude
+    * :math:`\mu` is the center of the peak
+    * :math:`\sigma` is the standard deviation (width)
+    
+    Args:
+        x (np.array): Array of times.
+        amp (float): The amplitude of the pulse, A.
+        center (float): The center time of the pulse, :math:`\mu`.
+        sigma (float): The standard deviation of the pulse, :math:`\sigma`.
+    
+    Returns:
+        (np.array)
+    """
+    return amp * np.exp(-((x - center)**2) / (2 * sigma**2))
+
+
+def triangular(x, amp, tstart, tpeak, tstop):
+    r"""A triangular pulse function.
+    
+    The functional form is a piecewise linear function:
+    
+    :math:`f(x) = \begin{cases} 
+    A \frac{x - t_{start}}{t_{peak} - t_{start}} & t_{start} \le x < t_{peak} \\ 
+    A \frac{t_{stop} - x}{t_{stop} - t_{peak}} & t_{peak} \le x \le t_{stop} \\ 
+    0 & \text{otherwise} 
+    \end{cases}`
+    
+    where:
+    
+    * :math:`A` is the pulse amplitude
+    * :math:`t_{start}` is the start time of the pulse
+    * :math:`t_{peak}` is the time of the peak amplitude
+    * :math:`t_{stop}` is the end time of the pulse
+    
+    Args:
+        x (np.array): Array of times.
+        amp (float): The amplitude of the peak, A.
+        tstart (float): The start time of the pulse.
+        tpeak (float): The time of the peak.
+        tstop (float): The end time of the pulse.
+        
+    Returns:
+        (np.array)
+    """
+    return np.interp(x, [tstart, tpeak, tstop], [0, amp, 0])
 
 # ------------------------------------------------------------------------------
 

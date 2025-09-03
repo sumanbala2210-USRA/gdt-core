@@ -726,6 +726,93 @@ class SmoothlyBrokenPowerLaw(Function):
         beta = m * delta * np.log((np.exp(a) + np.exp(-a)) / 2.0)
         fxn = A * (x / Epiv) ** b * 10.0 ** (beta - bpiv)
         return fxn
+    
+
+class DoubleSmoothlyBrokenPowerLaw(Function):
+    r"""The double-smoothly-broken power law from:
+    https://doi.org/10.1051/0004-6361/201732245
+    """
+    nparams = 8
+    param_list = [('A', 'ph/s/cm^2/keV', 'Amplitude'),
+                  ('alpha1', '', 'Photon index below Break Energy'),
+                  ('Eb', 'keV', 'Break Energy'),
+                  ('alpha2', '', 'Photon index between Break Energy and Peak Energy'),
+                  ('Ep', 'keV', 'Peak Energy'),
+                  ('beta', '', 'High-Energy Photon index'),
+                  ('n1', '', 'Break Energy smoothness parameter'),
+                  ('n2', '', 'Peak Energy smoothness parameter')]
+
+                   # [  A,    a1,    Eb,    a2,   Ep,  beta,   n1,   n2]
+    # default_values = [30.0,  -1.0,  50.0,  -1.5, 330.0, -2.2, 5.38, 2.69]
+    # default_values = [30.0, -1.75, 100.0, -1.75, 3500.0, -4.6, 5.38, 2.69]
+
+    # default_values = [0.01,  -1.0,  50.0,  -1.5, 330.0, -3, 5.38, 2.69]
+
+
+    # delta_abs = [ 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1]
+    # delta_rel = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
+    #            # [     A,   a1,    Eb,     a2,      Ep,   beta,   n1,   n2]
+    # # min_values = [    0.1, -10.0,   0.1, -1.99,     1.0,  -10.0, 0.01, 0.01]
+    # # max_values = [10000.0,   5.0, 1000.0,  5.0, 10000.0, -2.001, 10.0, 10.0]
+
+    # # min_values = [    0.1, -5.0,   0.1, -1.99,     1.0,  -10.0, 0.01, 0.01]
+    # min_values = [    0.1, -1.99,   0.1, -1.99,     1.0,  -10.0, 0.01, 0.01]
+    # max_values = [1000.0,   5.0, 1000.0,  5.0, 10000.0, -2.001, 10.0, 10.0]
+
+    # min_values = [   0.1, -5.0,  40.0, -2.0,     0.1, -10.0, 5.38, 2.69]
+    # max_values = [1000.0,  5.0, 500.0,  5.0, 50000.0, 2.001, 5.38, 2.69]
+    # min_values = [ 1e-10, -1.9,    0.1, -5.0,    0.1, -10.0,  1e-10,  1e-10]
+    # max_values = [np.inf,  2.0, np.inf,  5.0, np.inf, 2.001, np.inf, np.inf]
+
+
+
+    # default_values = [0.01,  -0.7,  50.0,  -1.5, 330.0, -3.0, 5.38, 2.69]
+    # default_values = [0.01,  -0.7,  50.0,  -1.5, 500.0, -3.0, 5.38, 2.69]
+
+    # default_values = [0.01,  -0.67,  100.0,  -1.5, 500.0, -3.0, 5.38, 2.69]
+
+    default_values = [0.01,  -0.7,  150.0,  -1.5, 800.0, -3.5, 5.38, 2.69]
+
+    delta_abs = [ 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  0.1]
+    delta_rel = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
+    min_values = [    0.1, -1.99,   1.0, -1.99,     1.0,  -10.0, 0.01, 0.01]
+    max_values = [100.0,   5.00, 1000.0,  2.00, 10000.0,  -2.001, 10.0, 10.0]
+    free = [True, True, True, True, True, True, False, False]
+
+
+    def eval(self, params, x):
+
+        A, alpha1, Eb, alpha2, Ep, beta, n1, n2 = params
+        fxn = np.zeros(len(x), dtype=float)
+
+        # E_j helpers
+        num = alpha2 + 2.0
+        den = beta + 2.0
+        expo = 1.0 / ((beta - alpha2) * n2)
+
+        # E_j
+        Ej = Ep * (-num / den) ** expo
+
+        # main function helpers
+        EoEb = x / Eb
+        EoEj = x / Ej
+        EjoEb = Ej / Eb
+        a1n1 = alpha1 * n1
+        a2n1 = alpha2 * n1
+        bn2 = beta * n2
+        n2on1 = n2 / n1
+
+        # main function
+        fxn = A * Eb ** alpha1 * \
+        ( \
+        ((EoEb ** -a1n1) + (EoEb ** -a2n1)) ** n2on1 \
+        + EoEj ** -bn2 * ((EjoEb) ** -a1n1 + (EjoEb) ** -a2n1) ** n2on1 \
+        ) ** -(1.0/n2)
+
+        return fxn
+
 
 
 class LogNormal(Function):
